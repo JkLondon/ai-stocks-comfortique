@@ -32,16 +32,16 @@ func main() {
 		log.Fatal("Необходимо установить переменную окружения TELEGRAM_BOT_TOKEN")
 	}
 
-	// Получение API ключа OpenAI и имени модели из переменных окружения
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	// Получение API ключа и имени модели из переменных окружения
+	apiKey := os.Getenv("AI_API_KEY")
 	if apiKey == "" {
-		log.Fatal("Необходимо установить переменную окружения OPENAI_API_KEY")
+		log.Fatal("Необходимо установить переменную окружения AI_API_KEY")
 	}
 
-	modelName := os.Getenv("OPENAI_MODEL_NAME")
+	modelName := os.Getenv("AI_MODEL_NAME")
 	if modelName == "" {
 		modelName = "gpt-4o" // Значение по умолчанию, если переменная окружения не установлена
-		log.Println("Переменная OPENAI_MODEL_NAME не установлена, используется модель по умолчанию:", modelName)
+		log.Println("Переменная AI_MODEL_NAME не установлена, используется модель по умолчанию:", modelName)
 	}
 
 	// Инициализация бота

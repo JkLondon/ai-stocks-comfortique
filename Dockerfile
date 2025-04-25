@@ -32,7 +32,8 @@ WORKDIR /app
 
 # Копирование скомпилированного бинарного файла из этапа сборки
 COPY --from=builder /app/ai-stocks-bot .
-COPY config_example.env .env
+COPY --from=builder /app/ai_prompt.txt ./ai_prompt.txt
+COPY --from=builder /app/config_example.env .env
 
 # Указание, что файлами владеет непривилегированный пользователь
 RUN chown -R appuser:appuser /app
