@@ -91,9 +91,15 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, subscribedCh
 	// Проверка, является ли пользователь администратором
 	isAdmin := userID == ADMIN_USER_ID
 
+	// Проверяем, что сообщение является командой (начинается с /)
+	if len(message.Text) == 0 || message.Text[0] != '/' {
+		// Если это не команда, игнорируем сообщение
+		return
+	}
+
 	// Для команд, доступных всем пользователям
-	switch message.Text {
-	case "/start":
+	switch message.Command() {
+	case "start":
 		// Приветственное сообщение
 		welcomeText := `Привет! 👋 Я твой милый помощник по инвестициям! 💖
 
@@ -111,30 +117,32 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, subscribedCh
 		msg := tgbotapi.NewMessage(chatID, welcomeText)
 		bot.Send(msg)
 		return
-	}
-
-	// Для команд, доступных только администратору
-	if !isAdmin {
-		msg := tgbotapi.NewMessage(chatID, "Извините, но эта команда доступна только администратору бота! 🔒")
-		bot.Send(msg)
+	case "subscribe", "unsubscribe", "analytics":
+		// Проверяем, является ли пользователь админом для этих команд
+		if !isAdmin {
+			msg := tgbotapi.NewMessage(chatID, "Извините, но эта команда доступна только администратору бота! 🔒")
+			bot.Send(msg)
+			return
+		}
+	default:
 		return
 	}
 
-	// Обработка остальных команд (только для администратора)
-	switch message.Text {
-	case "/subscribe":
+	// Обработка команд для администратора
+	switch message.Command() {
+	case "subscribe":
 		// Подписка на ежедневную аналитику
 		subscribedChats[chatID] = true
 		msg := tgbotapi.NewMessage(chatID, "Вы успешно подписались на ежедневную аналитику! 🎉 Ожидайте первый выпуск в 10:00 по Москве! 💖")
 		bot.Send(msg)
 
-	case "/unsubscribe":
+	case "unsubscribe":
 		// Отписка от ежедневной аналитики
 		delete(subscribedChats, chatID)
 		msg := tgbotapi.NewMessage(chatID, "Вы отписались от ежедневной аналитики 😢 Будем скучать! 💔")
 		bot.Send(msg)
 
-	case "/analytics":
+	case "analytics":
 		// Отправка аналитики по запросу
 		msg := tgbotapi.NewMessage(chatID, "Генерирую аналитику, пожалуйста, подождите... ⏳")
 		sentMsg, _ := bot.Send(msg)
@@ -151,11 +159,6 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, subscribedCh
 		editMsg := tgbotapi.NewEditMessageText(chatID, sentMsg.MessageID, analytics)
 		editMsg.ParseMode = "Markdown"
 		bot.Send(editMsg)
-
-	default:
-		// Ответ на неизвестную команду
-		msg := tgbotapi.NewMessage(chatID, "Прости, я не понимаю эту команду 🥺 Используй /start чтобы увидеть список команд! 💕")
-		bot.Send(msg)
 	}
 }
 
