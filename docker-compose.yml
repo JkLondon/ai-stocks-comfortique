@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ai-stocks-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-stocks-bot
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL_NAME=${AI_MODEL_NAME:-gpt-4o}
+      - AI_API_BASE_URL=${AI_API_BASE_URL:-https://api.openai.com/v1/chat/completions}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge 

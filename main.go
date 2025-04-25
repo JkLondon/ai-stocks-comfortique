@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 )
 
 // Время отправки ежедневной аналитики (Московское время, UTC+3)
@@ -16,6 +17,15 @@ const (
 )
 
 func main() {
+	// Загрузка переменных окружения из .env файла
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Предупреждение: Не удалось загрузить файл .env:", err)
+		log.Println("Продолжаем с переменными окружения системы...")
+	} else {
+		log.Println("Переменные окружения успешно загружены из .env файла")
+	}
+
 	// Получение токена из переменной окружения
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if botToken == "" {

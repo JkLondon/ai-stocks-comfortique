@@ -29,26 +29,12 @@ type AIRequest struct {
 	Model       string    `json:"model"`
 	Messages    []Message `json:"messages"`
 	Temperature float64   `json:"temperature,omitempty"`
-	Tools       []Tool    `json:"tools,omitempty"`
-	ToolChoice  string    `json:"tool_choice,omitempty"`
 }
 
 // Message представляет сообщение в формате API
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
-}
-
-// Tool представляет инструмент для модели
-type Tool struct {
-	Type     string     `json:"type"`
-	Function ToolConfig `json:"function,omitempty"`
-}
-
-// ToolConfig представляет конфигурацию инструмента
-type ToolConfig struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
 }
 
 // AIResponse представляет ответ от API
@@ -114,11 +100,6 @@ func (s *AIService) GenerateAnalytics() (string, error) {
 	// Добавляем текущую дату в контекст
 	dateContext := fmt.Sprintf("Сегодняшняя дата: %s. Пожалуйста, используй свои актуальные знания о текущем состоянии российского рынка акций на эту дату. Нужна аналитика именно по сегодняшнему дню.", dateStr)
 
-	// Настраиваем инструменты для доступа к актуальным данным
-	retrievalTool := Tool{
-		Type: "retrieval", // Инструмент для поиска актуальной информации
-	}
-
 	request := AIRequest{
 		Model: s.config.ModelName,
 		Messages: []Message{
@@ -132,10 +113,6 @@ func (s *AIService) GenerateAnalytics() (string, error) {
 			},
 		},
 		Temperature: 0.7, // Средняя температура для баланса между креативностью и точностью
-		Tools: []Tool{
-			retrievalTool,
-		},
-		ToolChoice: "auto", // Модель сама решит, когда использовать инструмент
 	}
 
 	requestJSON, err := json.Marshal(request)
