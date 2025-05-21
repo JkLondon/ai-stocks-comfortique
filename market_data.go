@@ -37,6 +37,7 @@ type StockInfo struct {
 // NewsItem содержит новость о рынке
 type NewsItem struct {
 	Title     string    `json:"title"`
+	Content   string    `json:"content"`
 	Source    string    `json:"source"`
 	URL       string    `json:"url"`
 	Timestamp time.Time `json:"timestamp"`
@@ -456,7 +457,72 @@ func (s *MarketDataService) getMarketNews() ([]NewsItem, error) {
 		}
 	}
 
+	gAPI := os.Getenv("NEWS_G_API_KEY")
+	if gAPI != "" {
+		realNews, err := s.fetchGNewsFromAPI(gAPI)
+		if err == nil && len(realNews) > 0 {
+			return realNews, nil
+		}
+	}
+
 	return news, nil
+}
+
+type NewsGApi struct {
+	TotalArticles int        `json:"totalArticles"`
+	Articles      []GArticle `json:"articles"`
+}
+
+type GArticle struct {
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Content     string    `json:"content"`
+	Url         string    `json:"url"`
+	Image       string    `json:"image"`
+	PublishedAt time.Time `json:"publishedAt"`
+	Source      struct {
+		Name string `json:"name"`
+		Url  string `json:"url"`
+	} `json:"source"`
+}
+
+func (s *MarketDataService) fetchGNewsFromAPI(apiKey string) ([]NewsItem, error) {
+	// URL для запроса к NewsAPI
+	newsURL := fmt.Sprintf("https://gnews.io/api/v4/top-headlines?category=business&lang=ru&country=ru&max=10&apikey=%s", apiKey)
+
+	resp, err := s.client.Get(newsURL)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при запросе к News API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при чтении ответа News API: %w", err)
+	}
+
+	var newsResp NewsGApi
+
+	if err := json.Unmarshal(body, &newsResp); err != nil {
+		return nil, fmt.Errorf("ошибка при парсинге ответа News API: %w", err)
+	}
+
+	if len(newsResp.Articles) == 0 {
+		return nil, fmt.Errorf("некорректный ответ от News API")
+	}
+
+	articles := make([]NewsItem, 0, len(newsResp.Articles))
+	for _, newsArticle := range newsResp.Articles {
+		articles = append(articles, NewsItem{
+			Title:     newsArticle.Title,
+			Content:   newsArticle.Content,
+			Source:    newsArticle.Source.Name,
+			URL:       newsArticle.Source.Url,
+			Timestamp: newsArticle.PublishedAt,
+		})
+	}
+
+	return articles, nil
 }
 
 // fetchNewsFromAPI получает новости из API новостей
@@ -552,7 +618,7 @@ func (s *MarketDataService) FormatMarketDataForAI(data *MarketData) string {
 	// Новости рынка
 	sb.WriteString("📰 ПОСЛЕДНИЕ НОВОСТИ:\n")
 	for _, news := range data.MarketNews {
-		sb.WriteString(fmt.Sprintf("- %s (Источник: %s, %s)\n",
+		sb.WriteString(fmt.Sprintf("- %s %s (Источник: %s, %s)\n",
 			news.Title, news.Source, news.Timestamp.Format("02.01.2006")))
 	}
 	println(sb.String())
