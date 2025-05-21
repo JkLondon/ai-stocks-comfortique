@@ -157,15 +157,6 @@ func (s *MarketDataService) getMOEXData() (*MarketData, error) {
 	}
 
 	// Обрабатываем данные из ответа
-	securities, ok := moexResp["securities"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("некорректный формат данных от MOEX API")
-	}
-
-	secData, ok := securities["data"].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("некорректный формат data от MOEX API")
-	}
 
 	marketdata, ok := moexResp["marketdata"].(map[string]interface{})
 	if !ok {
@@ -178,44 +169,37 @@ func (s *MarketDataService) getMOEXData() (*MarketData, error) {
 	}
 
 	// Ищем индексы MOEX и RTS
-	for i, sec := range secData {
-		secArray, ok := sec.([]interface{})
-		if !ok || len(secArray) < 2 {
+	for _, md := range mdData {
+		mdArray, ok := md.([]interface{})
+		if !ok || len(mdArray) < 2 {
 			continue
 		}
 
-		ticker, ok := secArray[0].(string)
+		ticker, ok := mdArray[0].(string)
 		if !ok {
 			continue
 		}
 
 		// Получаем соответствующие данные маркетдаты
-		if i < len(mdData) {
-			mdArray, ok := mdData[i].([]interface{})
-			if !ok || len(mdArray) < 3 {
+		lastPrice, ok := mdArray[2].(float64)
+		if !ok {
+			// Пробуем преобразовать из строки
+			lastPriceStr, ok := mdArray[2].(string)
+			if !ok {
 				continue
 			}
-
-			lastPrice, ok := mdArray[2].(float64)
-			if !ok {
-				// Пробуем преобразовать из строки
-				lastPriceStr, ok := mdArray[2].(string)
-				if !ok {
-					continue
-				}
-				lastPrice, err = strconv.ParseFloat(lastPriceStr, 64)
-				if err != nil {
-					continue
-				}
+			lastPrice, err = strconv.ParseFloat(lastPriceStr, 64)
+			if err != nil {
+				continue
 			}
+		}
 
-			// Определяем индекс
-			switch ticker {
-			case "IMOEX":
-				marketData.IndexMOEX = lastPrice
-			case "RTSI":
-				marketData.IndexRTS = lastPrice
-			}
+		// Определяем индекс
+		switch ticker {
+		case "IMOEX":
+			marketData.IndexMOEX = lastPrice
+		case "RTSI":
+			marketData.IndexRTS = lastPrice
 		}
 	}
 
