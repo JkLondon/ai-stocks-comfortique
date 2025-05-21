@@ -565,7 +565,7 @@ func (s *MarketDataService) FormatMarketDataForAI(data *MarketData) string {
 		sb.WriteString(fmt.Sprintf("- %s (Источник: %s, %s)\n",
 			news.Title, news.Source, news.Timestamp.Format("02.01.2006")))
 	}
-
+	println(sb.String())
 	return sb.String()
 }
 
