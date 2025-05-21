@@ -118,6 +118,17 @@ func (s *MarketDataService) GetMarketData() (*MarketData, error) {
 	return moexData, nil
 }
 
+type MoexAPIResponse struct {
+	Cbrf struct {
+		Columns []string        `json:"columns"`
+		Data    [][]interface{} `json:"data"`
+	} `json:"cbrf"`
+	WapRates struct {
+		Columns []string        `json:"columns"`
+		Data    [][]interface{} `json:"data"`
+	} `json:"wap_rates"`
+}
+
 // getMOEXData получает данные с Мосбиржи
 func (s *MarketDataService) getMOEXData() (*MarketData, error) {
 	// URL API Московской Биржи для получения информации по индексам
@@ -218,26 +229,21 @@ func (s *MarketDataService) getMOEXData() (*MarketData, error) {
 
 		currBody, err := io.ReadAll(currResp.Body)
 		if err == nil {
-			var currResp map[string]interface{}
+			var currResp MoexAPIResponse
 			if err := json.Unmarshal(currBody, &currResp); err == nil {
-				if curr, ok := currResp["cbrf"].(map[string]interface{}); ok {
-					if data, ok := curr["data"].([]interface{}); ok && len(data) > 0 {
-						if dataArr, ok := data[0].([]interface{}); ok && len(dataArr) > 0 {
-							// USD/RUB
-							if len(dataArr) > 6 {
-								if usdRate, ok := dataArr[6].(float64); ok {
-									marketData.USDRate = usdRate
-								}
-							}
-							// EUR/RUB
-							if len(dataArr) > 7 {
-								if eurRate, ok := dataArr[7].(float64); ok {
-									marketData.EURRate = eurRate
-								}
-							}
-						}
-					}
+				// Сопоставляем названия колонок с их индексами
+				idx := make(map[string]int, len(currResp.Cbrf.Columns))
+				for i, col := range currResp.Cbrf.Columns {
+					idx[col] = i
 				}
+
+				// Берём первую строку данных
+				row := currResp.Cbrf.Data[0]
+
+				// Извлекаем и приводим типы
+				marketData.USDRate, _ = row[idx["CBRF_USD_LAST"]].(float64)
+
+				marketData.EURRate, _ = row[idx["CBRF_EUR_LAST"]].(float64)
 			}
 		}
 	}
